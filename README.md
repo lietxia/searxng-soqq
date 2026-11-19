@@ -19,15 +19,19 @@
 
 一个引擎覆盖元宝搜索的全部搜索分类，每个分类注册为独立引擎，可在 SearXNG 界面/API 分别选用：
 
-| 引擎名 | 分类 | 说明 | 实测条数 |
-|---|---|---|---|
-| `soqq` | general | 综合网页搜索 | 12–15 |
-| `soqq xueshu` | general | 学术科普（期刊论文、来源、日期）| 4 |
-| `soqq weixin` | general | **公众号文章**（真实 mp.weixin.qq.com 链接、作者、日期）| 29 |
-| `soqq video` | general | 视频号（作者、描述、export 链接）| 40 |
-| `soqq gov` | general | 组织机构（政府/官方站点）| 11–13 |
-| `soqq media` | general | 主流媒体（央媒/权威媒体）| 9 |
-| `soqq images` | images | 图片（原图、缩略图、来源页、尺寸）| 48 |
+| 引擎名 | 分类 | 说明 | 实测条数 | 默认 |
+|---|---|---|---|---|
+| `soqq` | general | 综合网页搜索 | 12–15 | ✅ 启用 |
+| `soqq weixin` | general | **公众号文章**（真实 mp.weixin.qq.com 链接、作者、日期）| 29 | ✅ 启用 |
+| `soqq video` | general | 视频号（作者、描述、export 链接）| 40 | 关闭 |
+| `soqq xueshu` | general | 学术科普（期刊论文、来源、日期）| 4 | 关闭 |
+| `soqq gov` | general | 组织机构（政府/官方站点）| 11–13 | 关闭 |
+| `soqq media` | general | 主流媒体（央媒/权威媒体）| 9 | 关闭 |
+| `soqq images` | images | 图片（原图、缩略图、来源页、尺寸）| 48 | 关闭 |
+
+> **默认只启用「综合 + 公众号」**：新版 SearXNG 的 `/search` 不认 `engines=` 参数，
+> 同一分类下多个引擎同时启用会一起触发、结果混杂。需要其他分类时，
+> 把 `settings_snippet.yml` 里对应条目的 `disabled: true` 删掉再重启即可。
 
 ## 安装
 
@@ -76,7 +80,7 @@ sudo systemctl restart searxng
 ### 注册引擎（三种方式通用）
 
 把 [settings_snippet.yml](settings_snippet.yml) 的内容加入 `settings.yml` 的 `engines:` 列表（注意 YAML 缩进）。
-每个引擎共用 `engine: soqq`（图片是 `soqq_images`），靠 `soqq_tab` 区分分类；只要某几个功能就删掉其余条目。
+每个引擎共用 `engine: soqq`（图片是 `soqq_images`），靠 `soqq_tab` 区分分类。片段里默认启用「综合 + 公众号」，其余 5 个带 `disabled: true`；要开哪个就删掉它的 `disabled: true`。
 
 ### 验证
 

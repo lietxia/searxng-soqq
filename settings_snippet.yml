@@ -1,5 +1,9 @@
-# 把这段加入 /root/searxng/settings.yml 的 engines: 列表里
+# 把这段加入 SearXNG settings.yml 的 engines: 列表里
 # 每个引擎共用 engine: soqq，靠 soqq_tab 区分 so.qq.com 的搜索类别
+#
+# 默认状态：综合(soqq) + 公众号(soqq weixin) 启用，其余关闭。
+# 原因：新版 SearXNG 的 /search 不认 engines= 参数，同一分类下多个引擎
+#       同时启用会一起触发、结果混杂。恢复某类时删掉它的 disabled: true 即可。
 
   - name: soqq
     engine: soqq
@@ -18,26 +22,31 @@
     shortcut: sovd
     soqq_tab: weixin_video
     categories: [general]
+    disabled: true
 
   - name: soqq xueshu
     engine: soqq
     shortcut: sows
     soqq_tab: xueshu
     categories: [general]
+    disabled: true
 
   - name: soqq gov
     engine: soqq
     shortcut: sogov
     soqq_tab: gov
     categories: [general]
+    disabled: true
 
   - name: soqq media
     engine: soqq
     shortcut: somedia
     soqq_tab: media
     categories: [general]
+    disabled: true
 
   - name: soqq images
     engine: soqq_images
     shortcut: soimg
     categories: [images]
+    disabled: true
