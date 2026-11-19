@@ -47,7 +47,12 @@ def request(query, params):
 
 
 def response(resp):
-    m = STATE_PAT.search(resp.text)
+    if getattr(resp, "ok", True) is False:
+        return []
+    text = getattr(resp, "text", "") or ""
+    if not text:
+        return []
+    m = STATE_PAT.search(text)
     if not m:
         return []
     try:

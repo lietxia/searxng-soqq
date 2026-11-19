@@ -31,26 +31,56 @@
 
 ## 安装
 
-环境要求：SearXNG（Docker 部署，本文以容器名 `searxng`、宿主机配置目录 `/root/searxng/` 为例）。
+环境要求：SearXNG（支持 Docker / 原生安装 / 源码运行三种方式）。
+引擎文件必须放进 SearXNG 的 `searx/engines/` 目录，并在 `settings.yml` 里注册。
 
-### 1. 复制引擎文件进容器
+### 方式一：Docker —— 复制到容器（最简单）
 
 ```bash
 docker cp engines/soqq.py        searxng:/usr/local/searxng/searx/engines/soqq.py
 docker cp engines/soqq_images.py searxng:/usr/local/searxng/searx/engines/soqq_images.py
+docker restart searxng
 ```
 
-### 2. 注册引擎
+### 方式二：Docker —— 软链接挂载（开发调试，改代码免重启容器）
 
-把 [settings_snippet.yml](settings_snippet.yml) 的内容加入宿主机的 `/root/searxng/settings.yml` 中 `engines:` 列表里（注意保持 YAML 缩进一致）。
-
-每个引擎共用 `engine: soqq`（图片是 `soqq_images`），靠 `soqq_tab` 选项区分分类。如果只想要某几个功能，删掉对应的条目即可。
-
-### 3. 重启并验证
+把引擎目录挂到配置卷（官方镜像的 `/etc/searxng` 是持久卷），再在容器里建软链：
 
 ```bash
-docker restart searxng
+# 1) 把本仓库的 engines/ 挂到容器的 /etc/searxng/custom-engines
+#    docker-compose.yml 的 volumes 里加一行：
+#      - ./engines:/etc/searxng/custom-engines:ro
 
+# 2) 进入容器建软链（只需一次）
+docker exec -it searxng sh -c \
+  'ln -s /etc/searxng/custom-engines/soqq.py /usr/local/searxng/searx/engines/soqq.py && \
+   ln -s /etc/searxng/custom-engines/soqq_images.py /usr/local/searxng/searx/engines/soqq_images.py'
+
+# 3) 改完宿主机引擎文件后，重启容器即可生效（不用重建镜像、不用重新 docker cp）
+docker restart searxng
+```
+
+> 说明：官方镜像的引擎目录固定在 `/usr/local/searxng/searx/engines/`（由 `ENGINE_DIR` 决定），
+> 不能直接挂载覆盖。软链接指向配置卷是实测可行的折中方案。
+
+### 方式三：原生安装（非 Docker / pip 源码运行）
+
+```bash
+# 找到你的 SearXNG 源码目录（含 searx/engines/ 的那层）
+cp engines/soqq.py        /path/to/searxng/searx/engines/
+cp engines/soqq_images.py /path/to/searxng/searx/engines/
+# 重启 SearXNG 服务（systemd / supervisor / flask run 视你的部署而定）
+sudo systemctl restart searxng
+```
+
+### 注册引擎（三种方式通用）
+
+把 [settings_snippet.yml](settings_snippet.yml) 的内容加入 `settings.yml` 的 `engines:` 列表（注意 YAML 缩进）。
+每个引擎共用 `engine: soqq`（图片是 `soqq_images`），靠 `soqq_tab` 区分分类；只要某几个功能就删掉其余条目。
+
+### 验证
+
+```bash
 # 引擎是否注册成功
 curl -s http://127.0.0.1:8081/config | python3 -c \
   "import json,sys; d=json.load(sys.stdin); print([e['name'] for e in d['engines'] if e['name'].startswith('soqq')])"

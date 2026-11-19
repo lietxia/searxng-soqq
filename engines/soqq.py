@@ -161,6 +161,11 @@ def request(query, params):
 
 
 def response(resp):
+    # Gracefully handle upstream errors (bad gateway / captcha page / empty body)
+    if getattr(resp, "ok", True) is False:
+        return []
+    if not getattr(resp, "text", ""):
+        return []
     # Prefer the per-request tab from params (new core sets resp.search_params);
     # fall back to the module-level value injected by settings.yml.
     tab = soqq_tab
