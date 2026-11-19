@@ -1,0 +1,43 @@
+# 把这段加入 /root/searxng/settings.yml 的 engines: 列表里
+# 每个引擎共用 engine: soqq，靠 soqq_tab 区分 so.qq.com 的搜索类别
+
+  - name: soqq
+    engine: soqq
+    shortcut: so
+    soqq_tab: all
+    categories: [general]
+
+  - name: soqq weixin
+    engine: soqq
+    shortcut: sowx
+    soqq_tab: weixin_article
+    categories: [general]
+
+  - name: soqq video
+    engine: soqq
+    shortcut: sovd
+    soqq_tab: weixin_video
+    categories: [general]
+
+  - name: soqq xueshu
+    engine: soqq
+    shortcut: sows
+    soqq_tab: xueshu
+    categories: [general]
+
+  - name: soqq gov
+    engine: soqq
+    shortcut: sogov
+    soqq_tab: gov
+    categories: [general]
+
+  - name: soqq media
+    engine: soqq
+    shortcut: somedia
+    soqq_tab: media
+    categories: [general]
+
+  - name: soqq images
+    engine: soqq_images
+    shortcut: soimg
+    categories: [images]

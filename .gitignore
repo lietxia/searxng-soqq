@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+
+# 参考的开源项目源码副本（第三方代码，仅本地对照用，不入库）
+references/
+
+# 测试快照是从 so.qq.com 抓取的真实页面（含动态 session/时间戳、体积大），不入库
+# 如需回归测试请在本地重新抓取，参见 README「注意事项」
+tests/fixtures/*.html
+tests/fixtures/*.json
+
+# 编辑器 / 系统
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 本地临时文件
+*.log
+*.tmp
+*.bak
