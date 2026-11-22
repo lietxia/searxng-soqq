@@ -38,7 +38,41 @@
 环境要求：SearXNG（支持 Docker / 原生安装 / 源码运行三种方式）。
 引擎文件必须放进 SearXNG 的 `searx/engines/` 目录，并在 `settings.yml` 里注册。
 
-### 方式一：Docker —— 复制到容器（最简单）
+### 方式一（推荐）：Docker —— 文件级挂载，容器更新不丢
+
+> 自定义引擎的 .py 文件必须持久化到宿主机。`docker cp` 和容器内软链都只在容器可写层，
+> 一旦 `docker compose up -d` 因更新镜像而重建容器，文件就没了，启动日志会出现
+> `Cannot load engine "soqq"` / `Cannot load engine "soqq_images"`（2026-11-22 实测）。
+
+1) 把引擎文件放到宿主机持久目录（不要放在 `/tmp` 这类会被清理的临时目录）：
+
+```bash
+mkdir -p /root/searxng/custom-engines
+cp engines/soqq.py engines/soqq_images.py /root/searxng/custom-engines/
+```
+
+2) 在 `docker-compose.yml` 的 `searxng` 服务里加两条文件级 bind mount：
+
+```yaml
+services:
+  searxng:
+    volumes:
+      - ./settings.yml:/etc/searxng/settings.yml:ro
+      - ./custom-engines/soqq.py:/usr/local/searxng/searx/engines/soqq.py:ro
+      - ./custom-engines/soqq_images.py:/usr/local/searxng/searx/engines/soqq_images.py:ro
+```
+
+3) 重建容器使挂载生效：
+
+```bash
+cd /root/searxng && docker compose up -d
+```
+
+官方镜像的引擎目录由 `ENGINE_DIR` 固定为 `/usr/local/searxng/searx/engines/`，
+不能挂载整个目录覆盖（会隐藏官方引擎）；但**挂载单个尚不存在的 .py 文件是实测可行的**，
+`load_module` 能正常加载。此后更新镜像、重建容器，引擎文件都会自动跟回来。
+
+### 方式二：Docker —— 直接复制进容器（仅临时测试，更新会丢）
 
 ```bash
 docker cp engines/soqq.py        searxng:/usr/local/searxng/searx/engines/soqq.py
@@ -46,7 +80,9 @@ docker cp engines/soqq_images.py searxng:/usr/local/searxng/searx/engines/soqq_i
 docker restart searxng
 ```
 
-### 方式二：Docker —— 软链接挂载（开发调试，改代码免重启容器）
+仅适合临时验证；长期使用请用方式一。
+
+### 方式三：Docker —— 软链接挂载（开发调试，不抗容器重建）
 
 把引擎目录挂到配置卷（官方镜像的 `/etc/searxng` 是持久卷），再在容器里建软链：
 
@@ -65,9 +101,11 @@ docker restart searxng
 ```
 
 > 说明：官方镜像的引擎目录固定在 `/usr/local/searxng/searx/engines/`（由 `ENGINE_DIR` 决定），
-> 不能直接挂载覆盖。软链接指向配置卷是实测可行的折中方案。
+> 不能直接挂载整个目录覆盖。软链接指向配置卷是实测可行的折中方案，
+> 但**只抗 `docker restart`，不抗 `docker compose up -d` 重建容器**（软链本身也在容器可写层，
+> 重建后会消失）。长期使用请用方式一的文件级挂载。
 
-### 方式三：原生安装（非 Docker / pip 源码运行）
+### 方式四：原生安装（非 Docker / pip 源码运行）
 
 ```bash
 # 找到你的 SearXNG 源码目录（含 searx/engines/ 的那层）
@@ -77,7 +115,7 @@ cp engines/soqq_images.py /path/to/searxng/searx/engines/
 sudo systemctl restart searxng
 ```
 
-### 注册引擎（三种方式通用）
+### 注册引擎（四种方式通用）
 
 把 [settings_snippet.yml](settings_snippet.yml) 的内容加入 `settings.yml` 的 `engines:` 列表（注意 YAML 缩进）。
 每个引擎共用 `engine: soqq`（图片是 `soqq_images`），靠 `soqq_tab` 区分分类。片段里默认启用「综合 + 公众号」，其余 5 个带 `disabled: true`；要开哪个就删掉它的 `disabled: true`。
@@ -99,6 +137,16 @@ curl -s -X POST http://127.0.0.1:8081/search \
 
 ```bash
 docker logs --tail 60 searxng 2>&1 | grep -iE "can't register|field is missing"
+```
+
+验证容器更新后引擎是否保留（方式一应当全部通过）：
+
+```bash
+cd /root/searxng && docker compose up -d --force-recreate
+docker exec searxng sh -c 'ls /usr/local/searxng/searx/engines/soqq*.py'
+docker logs searxng 2>&1 | grep -i soqq || echo "无 soqq 报错"
+curl -s http://127.0.0.1:8081/config | python3 -c \
+  "import json,sys; d=json.load(sys.stdin); print([(e['name'],e.get('enabled')) for e in d['engines'] if e['name'].startswith('soqq')])"
 ```
 
 ## 项目结构
@@ -132,6 +180,7 @@ docker logs --tail 60 searxng 2>&1 | grep -iE "can't register|field is missing"
 - 请低频使用，不要高频抓取。
 - 返回内容版权归原网站与作者所有；商用前请自行评估 so.qq.com 服务条款合规风险。
 - 本引擎需要请求携带浏览器 UA 与 Referer，已内置。
+- **容器更新保留**：用方式一的文件级挂载；`docker cp` 与软链都会在容器重建后失效，实测会导致全部 soQQ 引擎注册失败。
 
 ## 许可证
 
